@@ -123,6 +123,10 @@ func (s SrcLocations) GroupByFile() []SrcLocations {
 	// Add locations to groups on the same file without overlaps
 nextOriginalLoc:
 	for _, loc := range s {
+		if loc == nil {
+			continue
+		}
+
 		// Attempt to match it into an existing group
 		for _, grp := range nonOverlappingLocations {
 			if grp.fileName == loc.File.FullPath {
@@ -137,9 +141,14 @@ nextOriginalLoc:
 			}
 		}
 
+		fileName := ""
+		if loc.File != nil {
+			fileName = loc.File.FullPath
+		}
+
 		// if here we found no matching groups
 		nonOverlappingLocations = append(nonOverlappingLocations, &locationGroup{
-			fileName:  loc.File.FullPath,
+			fileName:  fileName,
 			locations: SrcLocations{loc},
 		})
 	}

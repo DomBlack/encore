@@ -131,7 +131,9 @@ func (BuilderImpl) Compile(ctx context.Context, p builder.CompileParams) (*build
 			CompilerVersion:   p.EncoreVersion.GetOrElse(fmt.Sprintf("EncoreCLI/%s", version.Version)),
 			AppRevision:       p.Build.Revision,
 			AppUncommitted:    p.Build.UncommittedChanges,
-			ExecScriptMainPkg: p.Build.MainPkg,
+			ExecScriptMainPkg: p.Build.MainPkg.Filter(func(_ paths.Pkg) bool { return p.Build.BuildExecScript }),
+			ShellMainPkg:      p.Build.MainPkg.Filter(func(_ paths.Pkg) bool { return p.Build.BuildShell }),
+			ShellEnvs:         p.Build.ShellEnvs,
 		})
 
 		if pd.pc.Errs.Len() > 0 {

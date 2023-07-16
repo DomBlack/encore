@@ -20,6 +20,8 @@ import (
 
 var LocalBuildTags = []string{"encore_local", "encore_no_gcp", "encore_no_aws", "encore_no_azure"}
 
+var ShellBuildTags = []string{"encore_shell", "encore_no_gcp", "encore_no_aws", "encore_no_azure"}
+
 type BuildInfo struct {
 	BuildTags          []string
 	CgoEnabled         bool
@@ -31,7 +33,10 @@ type BuildInfo struct {
 	UncommittedChanges bool
 
 	// MainPkg is the path to the existing main package to use, if any.
-	MainPkg option.Option[paths.Pkg]
+	MainPkg         option.Option[paths.Pkg]
+	BuildExecScript bool     // whether to build the exec script in the above main package
+	BuildShell      bool     // whether to build the interactive shell in the above main package
+	ShellEnvs       []string // environment variables to embed in the shell
 
 	// Overrides to explicitly set the GoRoot and EncoreRuntime paths.
 	// if not set, they will be inferred from the current executable.

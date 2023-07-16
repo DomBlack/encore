@@ -56,16 +56,6 @@ func execScript(appRoot, relWD string, args []string) {
 	os.Exit(code)
 }
 
-var alphaCmd = &cobra.Command{
-	Use:    "alpha",
-	Short:  "Pre-release functionality in alpha stage",
-	Hidden: true,
-}
-
-func init() {
-	rootCmd.AddCommand(alphaCmd)
-}
-
 func init() {
 	execCmd.Flags().StringVarP(&nsName, "namespace", "n", "", "Namespace to use (defaults to active namespace)")
 	alphaCmd.AddCommand(execCmd)

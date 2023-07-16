@@ -32,6 +32,8 @@ type Params struct {
 	Test option.Option[codegen.TestConfig]
 
 	ExecScriptMainPkg option.Option[paths.Pkg]
+	ShellMainPkg      option.Option[paths.Pkg]
+	ShellEnvs         []string
 }
 
 func Process(p Params) {
@@ -42,6 +44,8 @@ func Process(p Params) {
 		RuntimeModule:     p.RuntimeModule,
 		Test:              p.Test,
 		ExecScriptMainPkg: p.ExecScriptMainPkg,
+		ShellMainPkg:      p.ShellMainPkg,
+		ShellEnvs:         p.ShellEnvs,
 
 		CompilerVersion: p.CompilerVersion,
 		AppRevision:     p.AppRevision,

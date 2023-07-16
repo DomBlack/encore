@@ -39,11 +39,17 @@ type GenParams struct {
 
 	// ExecScriptMainPkg is the main package to build for an ExecScript execution.
 	ExecScriptMainPkg option.Option[paths.Pkg]
+
+	// ShellMainPkg is the main package to build for a the interactive shell
+	ShellMainPkg option.Option[paths.Pkg]
+	ShellEnvs    []string
 }
 
 func Gen(p GenParams) {
 	if test, ok := p.Test.Get(); ok {
 		genTestConfigs(p, test)
+	} else if shellPkg, ok := p.ShellMainPkg.Get(); ok {
+		genShellMain(p, shellPkg)
 	} else if execScript, ok := p.ExecScriptMainPkg.Get(); ok {
 		genExecScriptMain(p, execScript)
 	} else {
@@ -121,4 +127,37 @@ func genExecScriptMain(p GenParams, mainPkgPath paths.Pkg) {
 	}
 
 	genLoadApp(p, option.None[testParams]())
+}
+
+func genShellMain(p GenParams, mainPkgPath paths.Pkg) {
+	mainPkgDir := p.MainModule.RootDir.Join(mainPkgPath.String())
+	mainPkgPath = paths.Pkg(p.MainModule.Path).JoinSlash(paths.RelSlash(mainPkgPath))
+	file := p.Gen.InjectFile(mainPkgPath, "main", mainPkgDir, "encore_internal__shell.go", "shell")
+	f := file.Jen
+
+	// All services should be imported by the main package so they get initialized on system startup
+	// Services may not have API handlers as they could be purely operating on PubSub subscriptions
+	// so without this anonymous package import, that service might not be initialized.
+	for _, svc := range p.Desc.Services {
+		svc.Framework.ForAll(func(svcDesc *apiframework.ServiceDesc) {
+			rootPkg := svcDesc.RootPkg
+			if rootPkg.ImportPath != mainPkgPath {
+				f.Anon(rootPkg.ImportPath.String())
+			}
+		})
+	}
+
+	// Make sure auth handlers and global middleware are imported as well so they get registered.
+	if fw, ok := p.Desc.Framework.Get(); ok {
+		if ah, ok := fw.AuthHandler.Get(); ok {
+			f.Anon(ah.Decl.File.Pkg.ImportPath.String())
+		}
+		for _, mw := range fw.GlobalMiddleware {
+			f.Anon(mw.Decl.File.Pkg.ImportPath.String())
+		}
+	}
+
+	genLoadApp(p, option.Some(testParams{EnvsToEmbed: p.ShellEnvs}))
+
+	f.Func().Id("main").Params().Block(Qual("encore.dev/shell/shellruntime", "ShellMain").Call())
 }

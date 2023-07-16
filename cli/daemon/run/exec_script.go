@@ -86,6 +86,7 @@ func (mgr *Manager) ExecScript(ctx context.Context, p ExecScriptParams) (err err
 		Revision:           vcsRevision.Revision,
 		UncommittedChanges: vcsRevision.Uncommitted,
 		MainPkg:            option.Some(p.MainPkg),
+		BuildExecScript:    true,
 	}
 
 	parse, err := bld.Parse(ctx, builder.ParseParams{

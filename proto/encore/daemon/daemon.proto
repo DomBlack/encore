@@ -35,6 +35,8 @@ service Daemon {
   rpc SecretsRefresh (SecretsRefreshRequest) returns (SecretsRefreshResponse);
   // Version reports the daemon version.
   rpc Version (google.protobuf.Empty) returns (VersionResponse);
+  // Shell builds the inactive shell for the given app
+  rpc Shell (ShellRequest) returns (stream CommandMessage);
 
   // CreateNamespace creates a new infra namespace.
   rpc CreateNamespace (CreateNamespaceRequest) returns (Namespace);
@@ -256,6 +258,25 @@ message SecretsRefreshResponse {
 message VersionResponse {
   string version = 1;
   string config_hash = 2;
+}
+
+message ShellRequest {
+  string app_root = 1; // App to build the shell for
+  string output_file = 2; // Where to build the shell binary
+
+  // debug, if true, compiles the app with flags that improve the debugging experience.
+  bool debug = 3;
+
+  // codegen_debug, if true, dumps the generated code and prints where it is located.
+  bool codegen_debug = 4;
+
+  // environ is the environment to set for the running command.
+  // Each entry is a string in the format "KEY=VALUE", identical to os.Environ().
+  repeated string environ = 5;
+
+  // trace_file, if set specifies a trace file to write trace information
+  // about the parse and compilation process to.
+  optional string trace_file = 6;
 }
 
 // Namespaces

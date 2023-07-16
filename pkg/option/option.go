@@ -182,3 +182,13 @@ func (o Option[T]) PtrOrNil() *T {
 	}
 	return nil
 }
+
+// Filter returns Some if the Option is present and the given predicate returns true on the value
+func (o Option[T]) Filter(predicate func(T) bool) Option[T] {
+	if o.present {
+		if predicate(o.value) {
+			return Some(o.value)
+		}
+	}
+	return None[T]()
+}

@@ -822,6 +822,7 @@ func clearDirectives(node *ast.CommentGroup) {
 
 func isPrivateFile(fileName string) bool {
 	return strings.HasPrefix(fileName, "appruntime/") ||
+		strings.HasPrefix(fileName, "shell/shellruntime/") ||
 		strings.Contains(fileName, "internal/") ||
 		strings.HasSuffix(fileName, "_internal.go")
 }

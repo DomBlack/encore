@@ -179,7 +179,7 @@ func (l *List) Error() string {
 			b.WriteString(err.Error())
 		}
 	} else {
-		if len(l.List) == 0 {
+		if l == nil || len(l.List) == 0 {
 			b.WriteString("no errors")
 		} else {
 			for i, err := range l.List {
