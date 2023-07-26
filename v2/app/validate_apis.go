@@ -86,6 +86,11 @@ func (d *Desc) validateAPIs(pc *parsectx.Context, fw *apiframework.AppDesc, resu
 
 			// Check for usages outside of services
 			for _, invalidUsage := range d.ResourceUsageOutsideServices[ep] {
+				// The shell is allowed to call any endpoint
+				if d.ShellPackages.Contains(invalidUsage.DeclaredIn().Pkg) {
+					continue
+				}
+
 				pc.Errs.Add(
 					api.ErrAPICalledOutsideService.
 						AtGoNode(invalidUsage, errors.AsError("called here")).

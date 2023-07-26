@@ -14,6 +14,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	encore "encore.dev"
+	"encore.dev/appruntime/exported/experiments"
 	"encr.dev/cli/daemon/apps"
 	"encr.dev/internal/optracker"
 	"encr.dev/pkg/builder"
@@ -73,6 +74,7 @@ func (mgr *Manager) BuildShell(ctx context.Context, p BuildShellParams) (buildDi
 	if err != nil {
 		return "", errors.Wrap(err, "get experimental features")
 	}
+	expSet.Add(experiments.ExternalCalls)
 
 	vcsRevision := vcs.GetRevision(p.App.Root())
 	buildInfo := builder.BuildInfo{

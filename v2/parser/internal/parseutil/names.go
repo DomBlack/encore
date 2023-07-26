@@ -11,7 +11,7 @@ import (
 	"encr.dev/pkg/errors"
 	"encr.dev/pkg/idents"
 	"encr.dev/v2/internals/perr"
-	"encr.dev/v2/parser/infra/internal/literals"
+	"encr.dev/v2/parser/internal/literals"
 )
 
 const resourceNameMaxLength int = 63

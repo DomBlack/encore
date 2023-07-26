@@ -27,6 +27,9 @@ const (
 	AuthHandler
 	Middleware
 	ServiceStruct
+
+	// Shell Framework Resources
+	ShellCommand
 )
 
 type Resource interface {

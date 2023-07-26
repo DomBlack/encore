@@ -21,7 +21,8 @@ import (
 )
 
 type testParams struct {
-	EnvsToEmbed []string
+	EnvsToEmbed   []string
+	EmbedForShell bool
 }
 
 func genLoadApp(p GenParams, test option.Option[testParams]) {
@@ -37,8 +38,10 @@ func genLoadApp(p GenParams, test option.Option[testParams]) {
 	allowHeaders, exposeHeaders := computeCORSHeaders(p.Desc)
 
 	var envsToEmbed []string
+	var isShell bool
 	if test, ok := test.Get(); ok {
 		envsToEmbed = test.EnvsToEmbed
+		isShell = test.EmbedForShell
 	}
 
 	f.Func().Id("init").Params().BlockFunc(func(g *Group) {
@@ -52,7 +55,7 @@ func genLoadApp(p GenParams, test option.Option[testParams]) {
 			Id("CORSAllowHeaders"):   allowHeaders,
 			Id("CORSExposeHeaders"):  exposeHeaders,
 			Id("PubsubTopics"):       pubsubTopics(p.Gen, p.Desc),
-			Id("Testing"):            Lit(test.Present()),
+			Id("Testing"):            Lit(!isShell && test.Present()),
 			Id("TestServiceMap"):     testServiceMap(p.Desc),
 			Id("BundledServices"):    bundledServices(p.Desc),
 			Id("EnabledExperiments"): enabledExperiments(p.Gen.Build.Experiments),

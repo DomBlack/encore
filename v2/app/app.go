@@ -23,6 +23,10 @@ type Desc struct {
 	Parse      *parser.Result
 	Services   []*Service
 
+	// ShellPackages describes the paths to all packages where shell.NewCommand is called;
+	// this declares those paths as shell packages, which then can not be used as services.
+	ShellPackages *ShellPackages
+
 	// Framework describes API Framework-specific application-global data.
 	Framework option.Option[*apiframework.AppDesc]
 
@@ -82,6 +86,9 @@ func ValidateAndDescribe(pc *parsectx.Context, result *parser.Result) *Desc {
 	// First we want to discover the service layout
 	services := discoverServices(pc, result)
 
+	// Then discover any interactive shell packages
+	shellPkgs := discoverShellPackages(pc, result)
+
 	// Now we can configure the API framework by combining the service information
 	// with the parse results.
 	framework := configureAPIFramework(pc, services, result)
@@ -92,6 +99,7 @@ func ValidateAndDescribe(pc *parsectx.Context, result *parser.Result) *Desc {
 		MainModule:                   result.MainModule(),
 		Parse:                        result,
 		Services:                     services,
+		ShellPackages:                shellPkgs,
 		Framework:                    framework,
 		ResourceUsageOutsideServices: make(map[resource.Resource][]usage.Usage),
 	}

@@ -227,6 +227,14 @@ func NewServer(static *config.Static, runtime *config.Runtime, rt *reqtrack.Requ
 	return s
 }
 
+// SetHTTPClient sets the http client to use for making outbound API
+// requests from this instance.
+//
+// If not set it defaults to a standard http.Client.
+func (s *Server) SetHTTPClient(client *http.Client) {
+	s.httpClient = client
+}
+
 // setAuthHandler sets the auth handler to use.
 // If h is nil it means no auth handler is used.
 func (s *Server) setAuthHandler(h AuthHandler) {

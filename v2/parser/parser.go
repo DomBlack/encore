@@ -24,6 +24,7 @@ import (
 	"encr.dev/v2/parser/resource"
 	"encr.dev/v2/parser/resource/resourceparser"
 	"encr.dev/v2/parser/resource/usage"
+	"encr.dev/v2/parser/shell/cmd"
 )
 
 func NewParser(c *parsectx.Context) *Parser {
@@ -148,6 +149,7 @@ var allParsers = []*resourceparser.Parser{
 	sqldb.DatabaseParser,
 	sqldb.MigrationParser,
 	sqldb.NamedParser,
+	cmd.CommandParser,
 }
 
 func newUsageResolver() *usage.Resolver {

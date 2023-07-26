@@ -6,7 +6,7 @@ import (
 	"encr.dev/pkg/option"
 	"encr.dev/v2/internals/pkginfo"
 	"encr.dev/v2/internals/schema"
-	"encr.dev/v2/parser/infra/internal/locations"
+	"encr.dev/v2/parser/internal/locations"
 	"encr.dev/v2/parser/resource/resourceparser"
 )
 

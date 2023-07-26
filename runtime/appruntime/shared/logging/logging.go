@@ -16,8 +16,14 @@ import (
 
 var RootLogger = configure(appconf.Static, appconf.Runtime)
 
+// LogOut is where logs are currently being written to.
+//
+// By default this is os.Stderr, however if the shell is running, then logs are written to the shell's
+// cmd stdout instead.
+var LogOut io.Writer = os.Stderr
+
 func configure(static *config.Static, runtime *config.Runtime) zerolog.Logger {
-	var logOutput io.Writer = os.Stderr
+	var logOutput io.Writer = logProxy{}
 	if static.TestAsExternalBinary {
 		// If we're running as a test and as a binary outside of the Encore Daemon, then we want to
 		// log the output via a console logger, rather than the underlying JSON logs.
@@ -41,4 +47,10 @@ func reconfigureZerologFormat(runtime *config.Runtime) {
 		zerolog.TimeFieldFormat = time.RFC3339Nano
 	default:
 	}
+}
+
+type logProxy struct{}
+
+func (_ logProxy) Write(p []byte) (n int, err error) {
+	return LogOut.Write(p)
 }

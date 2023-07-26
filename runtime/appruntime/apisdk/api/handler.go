@@ -443,7 +443,6 @@ func (d *Desc[Req, Resp]) Call(c CallContext, req Req) (respData Resp, respErr e
 		service, found := c.server.runtime.ServiceDiscovery[d.Service]
 
 		if !found {
-			// FIXME(domblack): In the future add a check to see if we're hosting this service within this instance
 			return d.internalCall(c, req)
 		} else {
 			return d.externalCall(c, service, req)

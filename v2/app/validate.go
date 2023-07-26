@@ -9,6 +9,7 @@ import (
 	"encr.dev/v2/parser/apis/middleware"
 	"encr.dev/v2/parser/infra/pubsub"
 	"encr.dev/v2/parser/infra/secrets"
+	"encr.dev/v2/parser/shell/cmd"
 	"encr.dev/v2/parser/infra/sqldb"
 )
 
@@ -49,6 +50,10 @@ func (d *Desc) validate(pc *parsectx.Context, result *parser.Result) {
 			continue
 		case *sqldb.Database:
 			// Databases are allowed anywhere
+			continue
+
+		case *cmd.Command:
+			// Shell commands are allowed anywhere
 			continue
 
 		default:

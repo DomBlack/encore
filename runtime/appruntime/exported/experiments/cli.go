@@ -20,13 +20,13 @@ func FromAppFileAndEnviron(fromAppFile []Name, environ []string) (*Set, error) {
 	set := &Set{make(map[Name]struct{})}
 
 	// Add experiments enabled in the app file
-	if err := set.add(fromAppFile...); err != nil {
+	if err := set.Add(fromAppFile...); err != nil {
 		return nil, err
 	}
 
 	// Grab experiments from the environmental variables of this process.
 	if val := os.Getenv(envName); val != "" {
-		if err := set.add(parseEnvVal(val)...); err != nil {
+		if err := set.Add(parseEnvVal(val)...); err != nil {
 			return nil, err
 		}
 	}
@@ -36,7 +36,7 @@ func FromAppFileAndEnviron(fromAppFile []Name, environ []string) (*Set, error) {
 	for _, env := range environ {
 		if strings.HasPrefix(env, prefix) {
 			val := env[len(prefix):]
-			if err := set.add(parseEnvVal(val)...); err != nil {
+			if err := set.Add(parseEnvVal(val)...); err != nil {
 				return nil, err
 			}
 		}
@@ -45,7 +45,7 @@ func FromAppFileAndEnviron(fromAppFile []Name, environ []string) (*Set, error) {
 	return set, nil
 }
 
-func (s *Set) add(keys ...Name) error {
+func (s *Set) Add(keys ...Name) error {
 	for _, key := range keys {
 		if key == "" {
 			continue

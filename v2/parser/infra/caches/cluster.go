@@ -7,8 +7,8 @@ import (
 	"encore.dev/storage/cache"
 	"encr.dev/pkg/paths"
 	"encr.dev/v2/internals/pkginfo"
-	literals "encr.dev/v2/parser/infra/internal/literals"
-	parseutil "encr.dev/v2/parser/infra/internal/parseutil"
+	literals "encr.dev/v2/parser/internal/literals"
+	parseutil "encr.dev/v2/parser/internal/parseutil"
 	"encr.dev/v2/parser/resource"
 	"encr.dev/v2/parser/resource/resourceparser"
 )
