@@ -35,8 +35,11 @@ service Daemon {
   rpc SecretsRefresh (SecretsRefreshRequest) returns (SecretsRefreshResponse);
   // Version reports the daemon version.
   rpc Version (google.protobuf.Empty) returns (VersionResponse);
+
   // Shell builds the inactive shell for the given app
   rpc Shell (ShellRequest) returns (stream CommandMessage);
+  // ListenAddressForApp returns the currently running listen address for the app.
+  rpc ListenAddressForApp (ListenAddressForAppRequest) returns (ListenAddressForAppResponse);
 
   // CreateNamespace creates a new infra namespace.
   rpc CreateNamespace (CreateNamespaceRequest) returns (Namespace);
@@ -277,6 +280,14 @@ message ShellRequest {
   // trace_file, if set specifies a trace file to write trace information
   // about the parse and compilation process to.
   optional string trace_file = 6;
+}
+
+message ListenAddressForAppRequest {
+  string app_id = 1;
+}
+
+message ListenAddressForAppResponse {
+  string listen_address = 1; // the hostname and port the app is listening on
 }
 
 // Namespaces

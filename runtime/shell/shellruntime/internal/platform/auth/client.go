@@ -24,7 +24,15 @@ func NewClient() (*http.Client, error) {
 		return nil, err
 	}
 
-	return oauth2.NewClient(nil, tokenSource), nil
+	// The following code is basically oauth2.NewClient, but we have our own
+	// copy of the [oauth2.Transport] which uses a different HTTP Header for
+	// adding the token to the request
+	return &http.Client{
+		Transport: &Transport{
+			Base:   http.DefaultTransport,
+			Source: oauth2.ReuseTokenSource(nil, tokenSource),
+		},
+	}, nil
 }
 
 func newTokenSource() (*TokenSource, error) {

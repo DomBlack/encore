@@ -198,7 +198,7 @@ func (m Model) View() string {
 func (m Model) InitPlatformClient() (rtn tea.Msg) {
 	defer func() {
 		if err := recover(); err != nil {
-			rtn = errors.Newf("panic: %v", err)
+			rtn = errorMsg{errors.Newf("panic: %v", err)}
 		}
 	}()
 

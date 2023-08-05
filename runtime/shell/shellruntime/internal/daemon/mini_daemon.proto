@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+option go_package = "encore.dev/shell/shellruntime/internal/daemon";
+
+package encore.daemon;
+
+service Daemon {
+  // ListenAddressForApp returns the currently running listen address for the app.
+  rpc ListenAddressForApp (ListenAddressForAppRequest) returns (ListenAddressForAppResponse);
+}
+
+message ListenAddressForAppRequest {
+  string app_id = 1;
+}
+
+message ListenAddressForAppResponse {
+  string listen_address = 1; // the hostname and port the app is listening on
+}

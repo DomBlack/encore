@@ -20,23 +20,24 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	Daemon_Run_FullMethodName             = "/encore.daemon.Daemon/Run"
-	Daemon_Test_FullMethodName            = "/encore.daemon.Daemon/Test"
-	Daemon_ExecScript_FullMethodName      = "/encore.daemon.Daemon/ExecScript"
-	Daemon_Check_FullMethodName           = "/encore.daemon.Daemon/Check"
-	Daemon_Export_FullMethodName          = "/encore.daemon.Daemon/Export"
-	Daemon_DBConnect_FullMethodName       = "/encore.daemon.Daemon/DBConnect"
-	Daemon_DBProxy_FullMethodName         = "/encore.daemon.Daemon/DBProxy"
-	Daemon_DBReset_FullMethodName         = "/encore.daemon.Daemon/DBReset"
-	Daemon_GenClient_FullMethodName       = "/encore.daemon.Daemon/GenClient"
-	Daemon_GenWrappers_FullMethodName     = "/encore.daemon.Daemon/GenWrappers"
-	Daemon_SecretsRefresh_FullMethodName  = "/encore.daemon.Daemon/SecretsRefresh"
-	Daemon_Version_FullMethodName         = "/encore.daemon.Daemon/Version"
-	Daemon_Shell_FullMethodName           = "/encore.daemon.Daemon/Shell"
-	Daemon_CreateNamespace_FullMethodName = "/encore.daemon.Daemon/CreateNamespace"
-	Daemon_SwitchNamespace_FullMethodName = "/encore.daemon.Daemon/SwitchNamespace"
-	Daemon_ListNamespaces_FullMethodName  = "/encore.daemon.Daemon/ListNamespaces"
-	Daemon_DeleteNamespace_FullMethodName = "/encore.daemon.Daemon/DeleteNamespace"
+	Daemon_Run_FullMethodName                 = "/encore.daemon.Daemon/Run"
+	Daemon_Test_FullMethodName                = "/encore.daemon.Daemon/Test"
+	Daemon_ExecScript_FullMethodName          = "/encore.daemon.Daemon/ExecScript"
+	Daemon_Check_FullMethodName               = "/encore.daemon.Daemon/Check"
+	Daemon_Export_FullMethodName              = "/encore.daemon.Daemon/Export"
+	Daemon_DBConnect_FullMethodName           = "/encore.daemon.Daemon/DBConnect"
+	Daemon_DBProxy_FullMethodName             = "/encore.daemon.Daemon/DBProxy"
+	Daemon_DBReset_FullMethodName             = "/encore.daemon.Daemon/DBReset"
+	Daemon_GenClient_FullMethodName           = "/encore.daemon.Daemon/GenClient"
+	Daemon_GenWrappers_FullMethodName         = "/encore.daemon.Daemon/GenWrappers"
+	Daemon_SecretsRefresh_FullMethodName      = "/encore.daemon.Daemon/SecretsRefresh"
+	Daemon_Version_FullMethodName             = "/encore.daemon.Daemon/Version"
+	Daemon_Shell_FullMethodName               = "/encore.daemon.Daemon/Shell"
+	Daemon_ListenAddressForApp_FullMethodName = "/encore.daemon.Daemon/ListenAddressForApp"
+	Daemon_CreateNamespace_FullMethodName     = "/encore.daemon.Daemon/CreateNamespace"
+	Daemon_SwitchNamespace_FullMethodName     = "/encore.daemon.Daemon/SwitchNamespace"
+	Daemon_ListNamespaces_FullMethodName      = "/encore.daemon.Daemon/ListNamespaces"
+	Daemon_DeleteNamespace_FullMethodName     = "/encore.daemon.Daemon/DeleteNamespace"
 )
 
 // DaemonClient is the client API for Daemon service.
@@ -71,6 +72,8 @@ type DaemonClient interface {
 	Version(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*VersionResponse, error)
 	// Shell builds the inactive shell for the given app
 	Shell(ctx context.Context, in *ShellRequest, opts ...grpc.CallOption) (Daemon_ShellClient, error)
+	// ListenAddressForApp returns the currently running listen address for the app.
+	ListenAddressForApp(ctx context.Context, in *ListenAddressForAppRequest, opts ...grpc.CallOption) (*ListenAddressForAppResponse, error)
 	// CreateNamespace creates a new infra namespace.
 	CreateNamespace(ctx context.Context, in *CreateNamespaceRequest, opts ...grpc.CallOption) (*Namespace, error)
 	// SwitchNamespace switches the active infra namespace.
@@ -390,6 +393,15 @@ func (x *daemonShellClient) Recv() (*CommandMessage, error) {
 	return m, nil
 }
 
+func (c *daemonClient) ListenAddressForApp(ctx context.Context, in *ListenAddressForAppRequest, opts ...grpc.CallOption) (*ListenAddressForAppResponse, error) {
+	out := new(ListenAddressForAppResponse)
+	err := c.cc.Invoke(ctx, Daemon_ListenAddressForApp_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *daemonClient) CreateNamespace(ctx context.Context, in *CreateNamespaceRequest, opts ...grpc.CallOption) (*Namespace, error) {
 	out := new(Namespace)
 	err := c.cc.Invoke(ctx, Daemon_CreateNamespace_FullMethodName, in, out, opts...)
@@ -458,6 +470,8 @@ type DaemonServer interface {
 	Version(context.Context, *emptypb.Empty) (*VersionResponse, error)
 	// Shell builds the inactive shell for the given app
 	Shell(*ShellRequest, Daemon_ShellServer) error
+	// ListenAddressForApp returns the currently running listen address for the app.
+	ListenAddressForApp(context.Context, *ListenAddressForAppRequest) (*ListenAddressForAppResponse, error)
 	// CreateNamespace creates a new infra namespace.
 	CreateNamespace(context.Context, *CreateNamespaceRequest) (*Namespace, error)
 	// SwitchNamespace switches the active infra namespace.
@@ -511,6 +525,9 @@ func (UnimplementedDaemonServer) Version(context.Context, *emptypb.Empty) (*Vers
 }
 func (UnimplementedDaemonServer) Shell(*ShellRequest, Daemon_ShellServer) error {
 	return status.Errorf(codes.Unimplemented, "method Shell not implemented")
+}
+func (UnimplementedDaemonServer) ListenAddressForApp(context.Context, *ListenAddressForAppRequest) (*ListenAddressForAppResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListenAddressForApp not implemented")
 }
 func (UnimplementedDaemonServer) CreateNamespace(context.Context, *CreateNamespaceRequest) (*Namespace, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateNamespace not implemented")
@@ -795,6 +812,24 @@ func (x *daemonShellServer) Send(m *CommandMessage) error {
 	return x.ServerStream.SendMsg(m)
 }
 
+func _Daemon_ListenAddressForApp_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListenAddressForAppRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DaemonServer).ListenAddressForApp(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Daemon_ListenAddressForApp_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DaemonServer).ListenAddressForApp(ctx, req.(*ListenAddressForAppRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Daemon_CreateNamespace_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CreateNamespaceRequest)
 	if err := dec(in); err != nil {
@@ -893,6 +928,10 @@ var Daemon_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Version",
 			Handler:    _Daemon_Version_Handler,
+		},
+		{
+			MethodName: "ListenAddressForApp",
+			Handler:    _Daemon_ListenAddressForApp_Handler,
 		},
 		{
 			MethodName: "CreateNamespace",

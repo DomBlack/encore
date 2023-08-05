@@ -4,6 +4,7 @@ package platform
 
 import (
 	"context"
+	"net/http"
 
 	"github.com/cockroachdb/errors"
 )
@@ -15,4 +16,13 @@ func Query(ctx context.Context, query string, variables map[string]any, resp any
 	}
 
 	return defaultClient.Query(ctx, query, variables, resp)
+}
+
+// Do will execute an HTTP request against the platform API
+func Do(req *http.Request) (*http.Response, error) {
+	if defaultClient == nil {
+		return nil, errors.New("no platform client configured")
+	}
+
+	return defaultClient.RawDo(req)
 }

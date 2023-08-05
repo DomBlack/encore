@@ -49,6 +49,10 @@ env staging
 
 func init() {
 	rootCmd.AddCommand(envCmd)
+
+	if err := changeEnv(io.Discard, "local"); err != nil {
+		panic(fmt.Sprintf("failed to set initial environment: %s", err))
+	}
 }
 
 func listEnvs(out io.Writer) error {
@@ -81,6 +85,16 @@ func changeEnv(out io.Writer, newEnv string) error {
 		return fmt.Errorf("unknown environment: %s", newEnv)
 	}
 	activeEnv = newEnv
+
+	// Update the active transport
+	switch activeEnv {
+	case "local":
+		shellApiTransportSingleton.ActiveTransport = &localLoopBackTransport{}
+	default:
+		shellApiTransportSingleton.ActiveTransport = &encorePlatformProxyTransport{
+			envName: newEnv,
+		}
+	}
 
 	_, _ = io.WriteString(out, "Environment changed to ")
 	_, _ = io.WriteString(out, newEnv)

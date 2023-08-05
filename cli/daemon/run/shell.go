@@ -117,6 +117,11 @@ func (mgr *Manager) BuildShell(ctx context.Context, p BuildShellParams) (buildDi
 	if err != nil {
 		return "", errors.Wrap(err, "generate listen addresses")
 	}
+	for svc := range listenAddresses.Services {
+		svcCfg := listenAddresses.Services[svc]
+		svcCfg.BaseURL = apiBaseURL
+		listenAddresses.Services[svc] = svcCfg
+	}
 
 	envGen := &RuntimeEnvGenerator{
 		App:             p.App,

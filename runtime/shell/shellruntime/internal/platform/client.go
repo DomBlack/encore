@@ -43,6 +43,20 @@ func Init() error {
 }
 
 func (c *Client) Do(req *http.Request) (*http.Response, error) {
+	resp, err := c.RawDo(req)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode >= 400 {
+		defer func() { _ = resp.Body.Close() }()
+		return nil, decodeErrorResponse(resp)
+	}
+
+	return resp, nil
+}
+
+func (c *Client) RawDo(req *http.Request) (*http.Response, error) {
 	// Add a very limited amount of information for diagnostics
 	req.Header.Set("User-Agent", "EncoreShell/"+appconf.Static.EncoreCompiler+"/"+appconf.Runtime.AppID)
 	req.Header.Set("X-Encore-Version", appconf.Static.EncoreCompiler)
@@ -53,14 +67,8 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
-
-	if resp.StatusCode >= 400 {
-		defer func() { _ = resp.Body.Close() }()
-		return nil, decodeErrorResponse(resp)
-	}
-
 	return resp, nil
 }
 

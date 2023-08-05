@@ -1,6 +1,8 @@
 package daemon
 
 import (
+	"context"
+	"errors"
 	"strings"
 
 	"encr.dev/cli/daemon/run"
@@ -66,4 +68,13 @@ func (s *Server) Shell(req *daemonpb.ShellRequest, stream daemonpb.Daemon_ShellS
 	}
 
 	return nil
+}
+
+func (s *Server) ListenAddressForApp(_ context.Context, req *daemonpb.ListenAddressForAppRequest) (*daemonpb.ListenAddressForAppResponse, error) {
+	runInstance := s.mgr.FindRunByAppID(req.AppId)
+	if runInstance == nil {
+		return nil, errors.New("app not running")
+	}
+
+	return &daemonpb.ListenAddressForAppResponse{ListenAddress: runInstance.ListenAddr}, nil
 }
