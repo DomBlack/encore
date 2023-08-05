@@ -48,6 +48,7 @@ require (
 	github.com/rs/xid v1.5.0
 	github.com/rs/zerolog v1.29.1
 	github.com/spf13/cobra v1.7.0
+	github.com/spf13/pflag v1.0.5
 	github.com/tailscale/hujson v0.0.0-20220630195928-54599719472f
 	go.encore.dev/platform-sdk v1.1.0
 	go.uber.org/goleak v1.1.12
@@ -131,7 +132,6 @@ require (
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/sahilm/fuzzy v0.1.0 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
-	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/vbatts/tar-split v0.11.2 // indirect
 	github.com/yuin/gopher-lua v0.0.0-20220504180219-658193537a64 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
