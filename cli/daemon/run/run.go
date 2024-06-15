@@ -506,9 +506,9 @@ func (r *Run) StartProcGroup(params *StartProcGroupParams) (p *ProcGroup, err er
 		Run:     r,
 		AuthKey: authKey,
 		ConfigGen: &RuntimeConfigGenerator{
-			app:            r.App,
-			infraManager:   r.ResourceManager,
-			md:             params.Meta,
+			App:            r.App,
+			InfraManager:   r.ResourceManager,
+			Meta:           params.Meta,
 			AppID:          option.Some(r.ID),
 			EnvID:          option.Some(pid),
 			TraceEndpoint:  option.Some(fmt.Sprintf("http://localhost:%d/trace", r.Mgr.RuntimePort)),

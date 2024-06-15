@@ -181,9 +181,9 @@ func (mgr *Manager) ExecScript(ctx context.Context, p ExecScriptParams) (err err
 
 	authKey := genAuthKey()
 	configGen := &RuntimeConfigGenerator{
-		app:            p.App,
-		infraManager:   rm,
-		md:             parse.Meta,
+		App:            p.App,
+		InfraManager:   rm,
+		Meta:           parse.Meta,
 		AppID:          option.Some(GenID()),
 		EnvID:          option.Some(GenID()),
 		TraceEndpoint:  option.Some(fmt.Sprintf("http://localhost:%d/trace", mgr.RuntimePort)),

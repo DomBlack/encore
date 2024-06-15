@@ -179,9 +179,9 @@ func (mgr *Manager) testSpec(ctx context.Context, bld builder.Impl, expSet *expe
 
 	authKey := genAuthKey()
 	configGen := &RuntimeConfigGenerator{
-		app:            params.App,
-		infraManager:   rm,
-		md:             parse.Meta,
+		App:            params.App,
+		InfraManager:   rm,
+		Meta:           parse.Meta,
 		AppID:          option.Some(params.App.PlatformOrLocalID()),
 		EnvID:          option.Some("test"),
 		TraceEndpoint:  option.Some(fmt.Sprintf("http://localhost:%d/trace", mgr.RuntimePort)),

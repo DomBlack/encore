@@ -482,8 +482,7 @@ func (c *legacyConverter) envCloud() encore.CloudProvider {
 	case runtimev1.Environment_CLOUD_ENCORE:
 		return encore.EncoreCloud
 	default:
-		c.setErrf("unknown cloud %+v", c.in.Environment.Cloud)
-		return ""
+		return encore.CloudProvider("unspecified")
 	}
 }
 

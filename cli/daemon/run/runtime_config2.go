@@ -40,17 +40,17 @@ const (
 
 type RuntimeConfigGenerator struct {
 	initOnce syncutil.Once
-	md       *meta.Data
+	Meta     *meta.Data
 
 	// The application to generate the config for
-	app interface {
+	App interface {
 		PlatformID() string
 		PlatformOrLocalID() string
 		GlobalCORS() (appfile.CORS, error)
 	}
 
 	// The infra manager to use
-	infraManager interface {
+	InfraManager interface {
 		SQLServerConfig() (config.SQLServer, error)
 		PubSubProviderConfig() (config.PubsubProvider, error)
 
@@ -78,8 +78,8 @@ type RuntimeConfigGenerator struct {
 	// The configs, per service.
 	SvcConfigs map[string]string
 
-	conf     *rtconfgen.Builder
-	authKeys []*runtimev1.EncoreAuthKey
+	Conf     *rtconfgen.Builder
+	AuthKeys []*runtimev1.EncoreAuthKey
 }
 
 type GatewayConfig struct {
@@ -87,20 +87,20 @@ type GatewayConfig struct {
 	Hostnames []string
 }
 
-func (g *RuntimeConfigGenerator) initialize() error {
+func (g *RuntimeConfigGenerator) Initialize() error {
 	return g.initOnce.Do(func() error {
-		g.conf = rtconfgen.NewBuilder()
+		g.Conf = rtconfgen.NewBuilder()
 
 		newRid := func() string { return "res_" + xid.New().String() }
 
 		if deployID, ok := g.DeployID.Get(); ok {
-			g.conf.DeployID(deployID)
+			g.Conf.DeployID(deployID)
 		}
-		g.conf.DeployedAt(time.Now())
+		g.Conf.DeployedAt(time.Now())
 
-		g.conf.Env(&runtimev1.Environment{
-			AppId:   g.AppID.GetOrElseF(g.app.PlatformOrLocalID),
-			AppSlug: g.app.PlatformID(),
+		g.Conf.Env(&runtimev1.Environment{
+			AppId:   g.AppID.GetOrElseF(g.App.PlatformOrLocalID),
+			AppSlug: g.App.PlatformID(),
 			EnvId:   g.EnvID.GetOrElse("local"),
 			EnvName: g.EnvName.GetOrElse("local"),
 			EnvType: g.EnvType.GetOrElse(runtimev1.Environment_TYPE_DEVELOPMENT),
@@ -113,15 +113,15 @@ func (g *RuntimeConfigGenerator) initialize() error {
 			}
 		}
 		ak := g.AuthKey
-		g.authKeys = []*runtimev1.EncoreAuthKey{{Id: ak.KeyID, Data: toSecret(ak.Data)}}
+		g.AuthKeys = []*runtimev1.EncoreAuthKey{{Id: ak.KeyID, Data: toSecret(ak.Data)}}
 
-		g.conf.EncorePlatform(&runtimev1.EncorePlatform{
-			PlatformSigningKeys: g.authKeys,
+		g.Conf.EncorePlatform(&runtimev1.EncorePlatform{
+			PlatformSigningKeys: g.AuthKeys,
 			EncoreCloud:         nil,
 		})
 
 		if traceEndpoint, ok := g.TraceEndpoint.Get(); ok {
-			g.conf.TracingProvider(&runtimev1.TracingProvider{
+			g.Conf.TracingProvider(&runtimev1.TracingProvider{
 				Rid: newRid(),
 				Provider: &runtimev1.TracingProvider_Encore{
 					Encore: &runtimev1.TracingProvider_EncoreTracingProvider{TraceEndpoint: traceEndpoint},
@@ -129,29 +129,29 @@ func (g *RuntimeConfigGenerator) initialize() error {
 			})
 		}
 
-		g.conf.AuthMethods([]*runtimev1.ServiceAuth{
+		g.Conf.AuthMethods([]*runtimev1.ServiceAuth{
 			{
 				AuthMethod: &runtimev1.ServiceAuth_EncoreAuth_{
 					EncoreAuth: &runtimev1.ServiceAuth_EncoreAuth{
-						AuthKeys: g.authKeys,
+						AuthKeys: g.AuthKeys,
 					},
 				},
 			},
 		})
 
-		g.conf.DefaultGracefulShutdown(&runtimev1.GracefulShutdown{
+		g.Conf.DefaultGracefulShutdown(&runtimev1.GracefulShutdown{
 			Total:         durationpb.New(10 * time.Second),
 			ShutdownHooks: durationpb.New(4 * time.Second),
 			Handlers:      durationpb.New(2 * time.Second),
 		})
 
-		for _, gw := range g.md.Gateways {
-			cors, err := g.app.GlobalCORS()
+		for _, gw := range g.Meta.Gateways {
+			cors, err := g.App.GlobalCORS()
 			if err != nil {
 				return errors.Wrap(err, "failed to generate global CORS config")
 			}
 
-			g.conf.Infra.Gateway(&runtimev1.Gateway{
+			g.Conf.Infra.Gateway(&runtimev1.Gateway{
 				Rid:        newRid(),
 				EncoreName: gw.EncoreName,
 				BaseUrl:    g.Gateways[gw.EncoreName].BaseURL,
@@ -175,20 +175,20 @@ func (g *RuntimeConfigGenerator) initialize() error {
 			})
 		}
 
-		if len(g.md.PubsubTopics) > 0 {
-			pubsubConfig, err := g.infraManager.PubSubProviderConfig()
+		if len(g.Meta.PubsubTopics) > 0 {
+			pubsubConfig, err := g.InfraManager.PubSubProviderConfig()
 			if err != nil {
 				return errors.Wrap(err, "failed to generate pubsub provider config")
 			}
 
-			cluster := g.conf.Infra.PubSubCluster(&runtimev1.PubSubCluster{
+			cluster := g.Conf.Infra.PubSubCluster(&runtimev1.PubSubCluster{
 				Rid: newRid(),
 				Provider: &runtimev1.PubSubCluster_Nsq{
 					Nsq: &runtimev1.PubSubCluster_NSQ{Hosts: []string{pubsubConfig.NSQ.Host}},
 				},
 			})
 
-			for _, topic := range g.md.PubsubTopics {
+			for _, topic := range g.Meta.PubsubTopics {
 				topicRid := newRid()
 
 				var deliveryGuarantee runtimev1.PubSubTopic_DeliveryGuarantee
@@ -224,13 +224,13 @@ func (g *RuntimeConfigGenerator) initialize() error {
 			}
 		}
 
-		if len(g.md.SqlDatabases) > 0 {
-			srvConfig, err := g.infraManager.SQLServerConfig()
+		if len(g.Meta.SqlDatabases) > 0 {
+			srvConfig, err := g.InfraManager.SQLServerConfig()
 			if err != nil {
 				return errors.Wrap(err, "failed to generate SQL server config")
 			}
 
-			cluster := g.conf.Infra.SQLCluster(&runtimev1.SQLCluster{
+			cluster := g.Conf.Infra.SQLCluster(&runtimev1.SQLCluster{
 				Rid: newRid(),
 			})
 
@@ -248,15 +248,15 @@ func (g *RuntimeConfigGenerator) initialize() error {
 				TlsConfig: tlsConfig,
 			})
 
-			for _, db := range g.md.SqlDatabases {
-				dbConfig, err := g.infraManager.SQLDatabaseConfig(db)
+			for _, db := range g.Meta.SqlDatabases {
+				dbConfig, err := g.InfraManager.SQLDatabaseConfig(db)
 				if err != nil {
 					return errors.Wrap(err, "failed to generate SQL database config")
 				}
 
 				// Generate a role rid based on the cluster+username combination.
 				roleRid := fmt.Sprintf("role:%s:%s", cluster.Val.Rid, dbConfig.User)
-				g.conf.Infra.SQLRole(&runtimev1.SQLRole{
+				g.Conf.Infra.SQLRole(&runtimev1.SQLRole{
 					Rid:           roleRid,
 					Username:      dbConfig.User,
 					Password:      toSecret([]byte(dbConfig.Password)),
@@ -276,21 +276,21 @@ func (g *RuntimeConfigGenerator) initialize() error {
 			}
 		}
 
-		if len(g.md.CacheClusters) > 0 {
-			for _, cl := range g.md.CacheClusters {
-				srvConfig, dbConfig, err := g.infraManager.RedisConfig(cl)
+		if len(g.Meta.CacheClusters) > 0 {
+			for _, cl := range g.Meta.CacheClusters {
+				srvConfig, dbConfig, err := g.InfraManager.RedisConfig(cl)
 				if err != nil {
 					return errors.Wrap(err, "failed to generate Redis cluster config")
 				}
 
-				cluster := g.conf.Infra.RedisCluster(&runtimev1.RedisCluster{
+				cluster := g.Conf.Infra.RedisCluster(&runtimev1.RedisCluster{
 					Rid:     newRid(),
 					Servers: nil,
 				})
 
 				// Generate a role rid based on the cluster+username combination.
 				roleRid := fmt.Sprintf("role:%s:%s", cluster.Val.Rid, srvConfig.User)
-				g.conf.Infra.RedisRoleFn(roleRid, func() *runtimev1.RedisRole {
+				g.Conf.Infra.RedisRoleFn(roleRid, func() *runtimev1.RedisRole {
 					r := &runtimev1.RedisRole{
 						Rid:           roleRid,
 						ClientCertRid: nil,
@@ -338,7 +338,7 @@ func (g *RuntimeConfigGenerator) initialize() error {
 		}
 
 		for secretName, secretVal := range g.DefinedSecrets {
-			g.conf.Infra.AppSecret(&runtimev1.AppSecret{
+			g.Conf.Infra.AppSecret(&runtimev1.AppSecret{
 				Rid:        newRid(),
 				EncoreName: secretName,
 				Data:       toSecret([]byte(secretVal)),
@@ -358,7 +358,7 @@ type ProcConfig struct {
 }
 
 func (g *RuntimeConfigGenerator) ProcPerService(proxy *svcproxy.SvcProxy) (services, gateways map[string]*ProcConfig, err error) {
-	if err := g.initialize(); err != nil {
+	if err := g.Initialize(); err != nil {
 		return nil, nil, err
 	}
 
@@ -370,7 +370,7 @@ func (g *RuntimeConfigGenerator) ProcPerService(proxy *svcproxy.SvcProxy) (servi
 	sd := &runtimev1.ServiceDiscovery{Services: make(map[string]*runtimev1.ServiceDiscovery_Location)}
 
 	svcListenAddr := make(map[string]netip.AddrPort)
-	for _, svc := range g.md.Svcs {
+	for _, svc := range g.Meta.Svcs {
 		listenAddr, err := freeLocalhostAddress()
 		if err != nil {
 			return nil, nil, errors.Wrap(err, "failed to find free localhost address")
@@ -382,7 +382,7 @@ func (g *RuntimeConfigGenerator) ProcPerService(proxy *svcproxy.SvcProxy) (servi
 				{
 					AuthMethod: &runtimev1.ServiceAuth_EncoreAuth_{
 						EncoreAuth: &runtimev1.ServiceAuth_EncoreAuth{
-							AuthKeys: g.authKeys,
+							AuthKeys: g.AuthKeys,
 						},
 					},
 				},
@@ -391,32 +391,32 @@ func (g *RuntimeConfigGenerator) ProcPerService(proxy *svcproxy.SvcProxy) (servi
 	}
 
 	// Set up the service processes.
-	for _, svc := range g.md.Svcs {
-		conf, err := g.conf.Deployment(newRid()).
+	for _, svc := range g.Meta.Svcs {
+		conf, err := g.Conf.Deployment(newRid()).
 			ServiceDiscovery(sd).
 			HostsServices(svc.Name).
-			ReduceWithMeta(g.md).
+			ReduceWithMeta(g.Meta).
 			BuildRuntimeConfig()
 		if err != nil {
 			return nil, nil, errors.Wrap(err, "failed to generate runtime config")
 		}
 
-		usedSecrets := secretsUsedByServices(g.md, svc.Name)
+		usedSecrets := SecretsUsedByServices(g.Meta, svc.Name)
 		listenAddr := svcListenAddr[svc.Name]
-		configEnvs := g.encodeConfigs(svc.Name)
+		configEnvs := g.EncodeConfigs(svc.Name)
 
 		services[svc.Name] = &ProcConfig{
 			Runtime:    option.Some(conf),
 			ListenAddr: listenAddr,
 			ExtraEnv: append([]string{
-				fmt.Sprintf("%s=%s", appSecretsEnvVar, g.encodeSecrets(usedSecrets)),
+				fmt.Sprintf("%s=%s", appSecretsEnvVar, g.EncodeSecrets(usedSecrets)),
 			}, configEnvs...),
 		}
 	}
 
 	// Set up the gateways.
-	for _, gw := range g.md.Gateways {
-		conf, err := g.conf.Deployment(newRid()).ServiceDiscovery(sd).HostsGateways(gw.EncoreName).ReduceWithMeta(g.md).BuildRuntimeConfig()
+	for _, gw := range g.Meta.Gateways {
+		conf, err := g.Conf.Deployment(newRid()).ServiceDiscovery(sd).HostsGateways(gw.EncoreName).ReduceWithMeta(g.Meta).BuildRuntimeConfig()
 		if err != nil {
 			return nil, nil, errors.Wrap(err, "failed to generate runtime config")
 		}
@@ -435,7 +435,7 @@ func (g *RuntimeConfigGenerator) ProcPerService(proxy *svcproxy.SvcProxy) (servi
 }
 
 func (g *RuntimeConfigGenerator) AllInOneProc() (*ProcConfig, error) {
-	if err := g.initialize(); err != nil {
+	if err := g.Initialize(); err != nil {
 		return nil, err
 	}
 
@@ -443,15 +443,15 @@ func (g *RuntimeConfigGenerator) AllInOneProc() (*ProcConfig, error) {
 
 	sd := &runtimev1.ServiceDiscovery{Services: make(map[string]*runtimev1.ServiceDiscovery_Location)}
 
-	d := g.conf.Deployment(newRid()).ServiceDiscovery(sd)
-	for _, gw := range g.md.Gateways {
+	d := g.Conf.Deployment(newRid()).ServiceDiscovery(sd)
+	for _, gw := range g.Meta.Gateways {
 		d.HostsGateways(gw.EncoreName)
 	}
-	for _, svc := range g.md.Svcs {
+	for _, svc := range g.Meta.Svcs {
 		d.HostsServices(svc.Name)
 	}
 
-	conf, err := d.ReduceWithMeta(g.md).BuildRuntimeConfig()
+	conf, err := d.ReduceWithMeta(g.Meta).BuildRuntimeConfig()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to generate runtime config")
 	}
@@ -461,7 +461,7 @@ func (g *RuntimeConfigGenerator) AllInOneProc() (*ProcConfig, error) {
 		return nil, errors.Wrap(err, "failed to find free localhost address")
 	}
 
-	configEnvs := g.encodeConfigs(fns.Map(g.md.Svcs, func(svc *meta.Service) string { return svc.Name })...)
+	configEnvs := g.EncodeConfigs(fns.Map(g.Meta.Svcs, func(svc *meta.Service) string { return svc.Name })...)
 
 	return &ProcConfig{
 		Runtime:    option.Some(conf),
@@ -473,7 +473,7 @@ func (g *RuntimeConfigGenerator) AllInOneProc() (*ProcConfig, error) {
 }
 
 func (g *RuntimeConfigGenerator) ProcPerServiceWithNewRuntimeConfig(proxy *svcproxy.SvcProxy) (conf *runtimev1.RuntimeConfig, services, gateways map[string]*ProcConfig, err error) {
-	if err := g.initialize(); err != nil {
+	if err := g.Initialize(); err != nil {
 		return nil, nil, nil, err
 	}
 
@@ -484,13 +484,13 @@ func (g *RuntimeConfigGenerator) ProcPerServiceWithNewRuntimeConfig(proxy *svcpr
 	services = make(map[string]*ProcConfig)
 	gateways = make(map[string]*ProcConfig)
 
-	newRid := func() string { return "res_" + xid.New().String() }
+	NewRid := func() string { return "res_" + xid.New().String() }
 
 	sd := &runtimev1.ServiceDiscovery{Services: make(map[string]*runtimev1.ServiceDiscovery_Location)}
 
 	svcListenAddr := make(map[string]netip.AddrPort)
 	var svcNames []string
-	for _, svc := range g.md.Svcs {
+	for _, svc := range g.Meta.Svcs {
 		svcNames = append(svcNames, svc.Name)
 		listenAddr, err := freeLocalhostAddress()
 		if err != nil {
@@ -503,7 +503,7 @@ func (g *RuntimeConfigGenerator) ProcPerServiceWithNewRuntimeConfig(proxy *svcpr
 				{
 					AuthMethod: &runtimev1.ServiceAuth_EncoreAuth_{
 						EncoreAuth: &runtimev1.ServiceAuth_EncoreAuth{
-							AuthKeys: g.authKeys,
+							AuthKeys: g.AuthKeys,
 						},
 					},
 				},
@@ -511,11 +511,11 @@ func (g *RuntimeConfigGenerator) ProcPerServiceWithNewRuntimeConfig(proxy *svcpr
 		}
 	}
 
-	for _, svc := range g.md.Svcs {
-		conf, err = g.conf.Deployment(newRid()).
+	for _, svc := range g.Meta.Svcs {
+		conf, err = g.Conf.Deployment(NewRid()).
 			ServiceDiscovery(sd).
 			HostsServices(svc.Name).
-			ReduceWithMeta(g.md).
+			ReduceWithMeta(g.Meta).
 			BuildRuntimeConfig()
 		if err != nil {
 			return nil, nil, nil, errors.Wrap(err, "failed to generate runtime config")
@@ -529,16 +529,16 @@ func (g *RuntimeConfigGenerator) ProcPerServiceWithNewRuntimeConfig(proxy *svcpr
 	}
 
 	// Set up the gateways.
-	for _, gw := range g.md.Gateways {
+	for _, gw := range g.Meta.Gateways {
 		listenAddr, err := freeLocalhostAddress()
 		if err != nil {
 			return nil, nil, nil, errors.Wrap(err, "failed to find free localhost address")
 		}
 
-		conf, err = g.conf.Deployment(newRid()).
+		conf, err = g.Conf.Deployment(NewRid()).
 			ServiceDiscovery(sd).
 			HostsGateways(gw.EncoreName).
-			//ReduceWithMeta(g.md).
+			// ReduceWithMeta(g.Meta).
 			BuildRuntimeConfig()
 		if err != nil {
 			return nil, nil, nil, errors.Wrap(err, "failed to generate runtime config")
@@ -553,7 +553,7 @@ func (g *RuntimeConfigGenerator) ProcPerServiceWithNewRuntimeConfig(proxy *svcpr
 }
 
 func (g *RuntimeConfigGenerator) ForTests(newRuntimeConf bool) (envs []string, err error) {
-	if err := g.initialize(); err != nil {
+	if err := g.Initialize(); err != nil {
 		return nil, err
 	}
 
@@ -561,15 +561,15 @@ func (g *RuntimeConfigGenerator) ForTests(newRuntimeConf bool) (envs []string, e
 
 	sd := &runtimev1.ServiceDiscovery{Services: make(map[string]*runtimev1.ServiceDiscovery_Location)}
 
-	d := g.conf.Deployment(newRid()).ServiceDiscovery(sd)
-	for _, gw := range g.md.Gateways {
+	d := g.Conf.Deployment(newRid()).ServiceDiscovery(sd)
+	for _, gw := range g.Meta.Gateways {
 		d.HostsGateways(gw.EncoreName)
 	}
-	for _, svc := range g.md.Svcs {
+	for _, svc := range g.Meta.Svcs {
 		d.HostsServices(svc.Name)
 	}
 
-	conf, err := d.ReduceWithMeta(g.md).BuildRuntimeConfig()
+	conf, err := d.ReduceWithMeta(g.Meta).BuildRuntimeConfig()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to generate runtime config")
 	}
@@ -603,11 +603,11 @@ func (g *RuntimeConfigGenerator) ForTests(newRuntimeConf bool) (envs []string, e
 		fmt.Sprintf("%s=%s", runtimeCfgEnvVar, runtimeCfgStr),
 	)
 
-	svcNames := fns.Map(g.md.Svcs, func(svc *meta.Service) string { return svc.Name })
-	envs = append(envs, g.encodeConfigs(svcNames...)...)
+	svcNames := fns.Map(g.Meta.Svcs, func(svc *meta.Service) string { return svc.Name })
+	envs = append(envs, g.EncodeConfigs(svcNames...)...)
 
 	if g.IncludeMetaEnv {
-		metaBytes, err := proto.Marshal(g.md)
+		metaBytes, err := proto.Marshal(g.Meta)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to marshal metadata")
 		}
@@ -667,7 +667,7 @@ func (g *RuntimeConfigGenerator) ProcEnvs(proc *ProcConfig, useRuntimeConfigV2 b
 	}
 
 	if g.IncludeMetaEnv {
-		metaBytes, err := proto.Marshal(g.md)
+		metaBytes, err := proto.Marshal(g.Meta)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to marshal metadata")
 		}
@@ -685,7 +685,7 @@ func (g *RuntimeConfigGenerator) ProcEnvs(proc *ProcConfig, useRuntimeConfigV2 b
 
 func (g *RuntimeConfigGenerator) MissingSecrets() []string {
 	var missing []string
-	for _, pkg := range g.md.Pkgs {
+	for _, pkg := range g.Meta.Pkgs {
 		for _, name := range pkg.Secrets {
 			if _, ok := g.DefinedSecrets[name]; !ok {
 				missing = append(missing, name)
@@ -698,7 +698,7 @@ func (g *RuntimeConfigGenerator) MissingSecrets() []string {
 	return missing
 }
 
-func (g *RuntimeConfigGenerator) encodeSecrets(secretNames map[string]bool) string {
+func (g *RuntimeConfigGenerator) EncodeSecrets(secretNames map[string]bool) string {
 	vals := make(map[string]string)
 	for name := range secretNames {
 		vals[name] = g.DefinedSecrets[name]
@@ -706,7 +706,7 @@ func (g *RuntimeConfigGenerator) encodeSecrets(secretNames map[string]bool) stri
 	return encodeSecretsEnv(vals)
 }
 
-func (g *RuntimeConfigGenerator) encodeConfigs(svcNames ...string) []string {
+func (g *RuntimeConfigGenerator) EncodeConfigs(svcNames ...string) []string {
 	envs := make([]string, 0, len(svcNames))
 	for _, svcName := range svcNames {
 		cfgStr, ok := g.SvcConfigs[svcName]
@@ -726,8 +726,8 @@ func (g *RuntimeConfigGenerator) encodeConfigs(svcNames ...string) []string {
 	return envs
 }
 
-// secretsUsedByServices returns the set of secrets that are accessible by the given services, using the metadata for access control.
-func secretsUsedByServices(md *meta.Data, svcNames ...string) (secretNames map[string]bool) {
+// SecretsUsedByServices returns the set of secrets that are accessible by the given services, using the metadata for access control.
+func SecretsUsedByServices(md *meta.Data, svcNames ...string) (secretNames map[string]bool) {
 	svcNameSet := make(map[string]bool)
 	for _, name := range svcNames {
 		svcNameSet[name] = true
